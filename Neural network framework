@@ -1,0 +1,16 @@
+框架：至少三个函数：
+                1.初始化函数-设定输入层节点、隐藏层节点、输出层节点的数量
+                2.训练：学习给定训练集样本后，优化权重
+                3.查询——给定输入，从输出节点给出答案
+# neural network Class definition
+class neuralNetwork:
+    1、 initialise the neural network
+    def __init__(self):
+        pass
+    2、 train the netural network
+    def train(self):
+        pass
+    3、 query the netural network
+    def query(self):
+        pass
+'''

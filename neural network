@@ -1,0 +1,142 @@
+ # 开发时间 ；2021/4/10 0010 16:01
+import numpy as np
+import scipy as sc
+import scipy.special
+import matplotlib.pyplot as plt
+
+class neuralNetwork:
+    #initialise the neural network
+    def __init__(self,inputnodes,hiddennodes,outputnodes,learningrate):
+        #set number of nodes in each input,hidden,output layer
+        self.inodes=inputnodes
+        self.hnodes=hiddennodes
+        self.onodes=outputnodes
+
+        #learing rate
+        self.lr=learningrate
+
+        # np.random.rand(rows,columns)
+        # link weight matrices,wih and who
+        # weights inside the arrays are w_i_j,where link is from node i to j in the next layer
+        # w11 w21
+        # w12 w22 etc
+        #
+
+        #使用下一层节点数的开方作为标准方差来初始化权重,np.random.normal()函数可以帮助我们以正态分布的方式采样这为更好的形式
+        self.wih = np.random.normal(0.0,pow(self.hnodes,- 0.5),(self.hnodes, self.inodes))#0.0表示正态分布的中心为0.0
+        self.who = np.random.normal(0.0,pow(self.onodes, - 0.5),(self.onodes, self.hnodes))
+
+        #activation function is the sigmoid function
+        self.activation_function=lambda x:sc.special.expit(x)#expit函数，也称为logistic sigmoid函数，定义为expit（x）= 1 /（1 + exp（-x））。 它是logit函数的反函数
+        pass
+
+    '''train the netural network
+    1.针对指定的训练样本计算输出。
+    2.将计算得到的输出与所需输出对比，使用差值来指导网络权重的更新
+    '''
+    def train(self,input_list,targets_list):
+        # covert inpurts list to 2d array
+        inputs = np.array(input_list, ndmin=2).T  # 将输入列表转换为2维数组
+        targets=np.array(targets_list, ndmin=2).T
+        # calaulate signals into hidden layer
+        hidden_inputs = np.dot(self.wih, inputs)  # dot--向量点积和矩阵乘法
+
+        # calaulate the signals emergeing from hidden layer
+        hidden_outputs = self.activation_function(hidden_inputs)
+
+        # calaulate the signals into final output layer
+        final_inputs = np.dot(self.who, hidden_outputs)
+        # calaulate the signals emergeing from final output layer
+        final_outputs = self.activation_function(final_inputs)
+        #output layer error is the (target-actual)
+        output_errors=targets-final_outputs
+        #hidden layer error is the output_error,split by weights,recombined at hidden nodes
+        hidden_errors=np.dot(self.who.T,output_errors)
+        #update the weights for the links between the hidden and output layers
+        self.who+= self.lr*np.dot((output_errors*final_outputs*(1.0-final_outputs)),np.transpose(hidden_outputs))
+        # update the weights for the links between the input and hidden layers
+        self.wih += self.lr * np.dot((hidden_errors * hidden_outputs * (1.0 - hidden_outputs)),
+                                     np.transpose(inputs))
+        pass
+
+    #query the netural network
+    def query(self,inputs_list):#接收神经网络的输入，返回输出
+
+        #covert inpurts list to 2d array
+        inputs=np.array(inputs_list,ndmin=2).T#将输入列表转换为2维数组
+
+        #calaulate signals into hidden layer
+        hidden_inputs=np.dot(self.wih,inputs)#dot--向量点积和矩阵乘法，这里计算公式为X_hidden=W_input_hidden_I
+
+        #calaulate the signals emergeing from hidden layer
+        hidden_outputs=self.activation_function(hidden_inputs)#O_hidden=sigmoid(X_hidden)
+
+        #calaulate the signals into final output layer
+        final_inputs=np.dot(self.who,hidden_outputs)
+        #calaulate the signals emergeing from final output layer
+        final_outputs=self.activation_function(final_inputs)
+        return final_outputs
+
+
+
+#number of input,hidden and output nodes
+#创建每层节点、学习率为0.5的神经网络
+input_nodes=784
+hidden_nodes=100
+output_nodes=10
+#set lr=0.5
+learning_rate=0.5
+
+    #create instance of neural network
+n=neuralNetwork(input_nodes,hidden_nodes,output_nodes,learning_rate)
+
+#read train_data
+train_file=open("D:\\python\\ML\\神经网络\\mnist_train_100.csv",'r')
+train_list=train_file.readlines()
+train_file.close()
+
+
+#train the neural network
+#epochs is the number of times the training data set is used for training
+epochs=10#训练数据集用于训练的次数
+for epoch in range(epochs):
+    #go through all records in the training data set
+    for record in train_list:
+        all_values=record.split(',')#将打印出来的record以，为界进行拆分，再存到all_values中
+        #scale and shift the inputs
+        inputs=(np.asfarray(all_values[1:])/250.0*0.99)+0.01
+        #creat the target output values(all 0.01,except the desired label which is 0.99)
+        targets=np.zeros(output_nodes)+0.01
+        #all_values[0] is the target label for this record
+        targets[int(all_values[0])]=0.99
+        n.train(inputs,targets)
+        pass
+
+#将mist测试数据csv文件加载到一个列表中
+test_file=open("D:\\python\\ML\\神经网络\\mnist_test_10.csv",'r')
+test_list=test_file.readlines()
+test_file.close()
+
+#test network
+scorecord=[]
+
+#go through all records in the test data set
+for record in test_list:
+    all_values=record.split(',')#将打印出来的record以，为界进行拆分，再存到all_values中
+    correct_label=int(all_values[0])####
+    #scale and shift the inputs
+    inputs=(np.asfarray(all_values[1:])/250.0*0.99)+0.01
+    #query the network
+    outputs=n.query(inputs)
+
+    label=np.argmax(outputs)
+    if (label==correct_label):
+        scorecord.append(1)
+    else:
+        scorecord.append(0)
+        pass
+    pass
+
+
+    scorecord_array=np.asarray(scorecord)
+    print("performance=",scorecord_array.sum()/scorecord_array.size)
